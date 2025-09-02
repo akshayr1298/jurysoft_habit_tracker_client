@@ -23,6 +23,10 @@ export default function Loginpage() {
       setError("Invalid email or password");
     }
   };
+    const handleClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    e.preventDefault();
+    navigate("/signup");
+  };
 
   return (
     <div className="min-h-screen bg-gray-900 flex items-center justify-center">
@@ -51,6 +55,16 @@ export default function Loginpage() {
           </button>
           {error && <p className="text-red-400 text-center">{error}</p>}
         </div>
+        <p className="mt-4 text-center text-gray-400">
+            Already have an account?{" "}
+            <a
+              href="#"
+              onClick={handleClick}
+              className="text-blue-500 hover:underline"
+            >
+              Signup
+            </a>
+          </p>
       </div>
     </div>
   );

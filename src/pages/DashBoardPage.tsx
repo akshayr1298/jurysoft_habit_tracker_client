@@ -1,10 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { addHabits, getAllHabits, markDone, reset } from "../service/habit";
 import Header from "../components/common/Header";
 import { profile } from "../service/auth";
 
-// Icons (using inline SVG to avoid extra libraries)
 const CheckIcon = () => (
   <svg
     xmlns="http://www.w3.org/2000/svg"
@@ -102,27 +100,30 @@ const calculateStreak = (completedDates: string[]): number => {
 };
 
 export default function DashBoardPage() {
-  interface FormData {
+  interface UserData {
     firstName: string;
     lastName: string;
   }
-  //   const user = JSON.parse(localStorage.getItem("user") || "{}");
+  interface FormData {
+    title: string;
+    description: string;
+    startDate: string;
+  }
   const [habits, setHabits] = useState<Habit[]>([]);
-  //   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  //   const navigate = useNavigate();
-  const [newHabitTitle, setNewHabitTitle] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [filter, setFilter] = useState("all");
   const [error, setError] = useState<string | null>(null);
-  const [userData, setUserData] = useState<FormData>({
+  const [userData, setUserData] = useState<UserData>({
     firstName: "",
     lastName: "",
   });
-
-  // Fetch habits from the backend
+  const [formData, setFormData] = useState<FormData>({
+    title: "",
+    description: "",
+    startDate: new Date().toISOString().split("T")[0],
+  });
   const fetchHabits = useCallback(async () => {
-    // if (!user.userId) return;
     setIsLoading(true);
     try {
       const response = await getAllHabits(filter, searchTerm);
@@ -154,15 +155,22 @@ export default function DashBoardPage() {
     fetchUserProfile();
   }, [fetchHabits]);
 
-  // Handle CRUD operations
   const handleCreateHabit = async () => {
-    if (!newHabitTitle) return;
+    if (!formData) return;
     try {
-      const response: any = await addHabits(newHabitTitle);
-      if (response !== 201) {
+      const formattedData = {
+        ...formData,
+        startDate: new Date(formData.startDate).toISOString().split("T")[0], // YYYY-MM-DD
+      };
+      const response: any = await addHabits(formattedData);
+      if (response.status !== 201) {
         throw new Error("Failed to create habit.");
       }
-      setNewHabitTitle("");
+      setFormData({
+        title: "",
+        description: "",
+        startDate: new Date().toISOString().split("T")[0],
+      });
       fetchHabits();
     } catch (err) {
       console.error("Failed to create habit:", err);
@@ -173,7 +181,7 @@ export default function DashBoardPage() {
   const handleMarkDone = async (habitId: string) => {
     try {
       const response: any = await markDone(habitId);
-      if (response !== 200) {
+      if (response.status !== 200) {
         throw new Error("Failed to mark habit as done.");
       }
       fetchHabits();
@@ -187,7 +195,7 @@ export default function DashBoardPage() {
     try {
       const response: any = await reset(habitId);
 
-      if (response !== 200) {
+      if (response.status !== 200) {
         throw new Error("Failed to reset habit.");
       }
       fetchHabits();
@@ -195,6 +203,15 @@ export default function DashBoardPage() {
       console.error("Failed to reset habit:", err);
       setError("Failed to reset habit.");
     }
+  };
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value,
+    });
+
+    // clear error when user types
   };
   return (
     <>
@@ -216,11 +233,25 @@ export default function DashBoardPage() {
               <input
                 type="text"
                 placeholder="e.g., Drink water, Read a book"
-                value={newHabitTitle}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                  setNewHabitTitle(e.target.value)
-                }
+                value={formData.title}
+                name="title"
+                onChange={handleChange}
                 className="flex-grow p-3 rounded-md bg-gray-700 border border-gray-600 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <input
+                type="text"
+                placeholder="Description"
+                value={formData.description}
+                name="description"
+                onChange={handleChange}
+                className="flex-grow p-3 rounded-md bg-gray-700 border border-gray-600 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <input
+                type="date"
+                value={formData.startDate}
+                name="startDate"
+                onChange={handleChange}
+                className="p-3 rounded-md bg-gray-700 border border-gray-600 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
               <button
                 onClick={handleCreateHabit}
