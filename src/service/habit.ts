@@ -20,7 +20,7 @@ export const addHabits = async (habits: any) => {
 
 export const markDone = async (id:string,) => {
   try {
-    const response = await api.patch(`/${id}`,);
+    const response = await api.patch(`/habit/${id}`,);
     return response;
   } catch (error) {
     throw error;
@@ -29,7 +29,7 @@ export const markDone = async (id:string,) => {
 
 export const reset = async (id:string,) => {
   try {
-    const response = await api.patch(`/reset/${id}`,);
+    const response = await api.patch(`/habit/reset/${id}`,);
     return response;
   } catch (error) {
     throw error;

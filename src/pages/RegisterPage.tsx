@@ -66,6 +66,11 @@ export default function RegisterPage() {
       } else {
         const result = await register(formData);
         console.log("result", result);
+        // Save tokens in localStorage
+        localStorage.setItem("accessToken", result.data.accessToken);
+        localStorage.setItem("refreshToken", result.data.refreshToken);
+
+        navigate("/dashboard");
         if (result.status === 201) {
           setFormData({ firstName: "", lastName: "", email: "", password: "" });
         }

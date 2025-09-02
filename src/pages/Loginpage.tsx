@@ -15,13 +15,17 @@ export default function Loginpage() {
       // Save tokens in localStorage
       localStorage.setItem("accessToken", data.accessToken);
       localStorage.setItem("refreshToken", data.refreshToken);
-      localStorage.setItem("user", JSON.stringify(data.user));
+      // localStorage.setItem("user", JSON.stringify(data.user));
 
       navigate("/dashboard");
     } catch (err: any) {
       console.error(err);
       setError("Invalid email or password");
     }
+  };
+    const handleClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    e.preventDefault();
+    navigate("/signup");
   };
 
   return (
@@ -51,6 +55,16 @@ export default function Loginpage() {
           </button>
           {error && <p className="text-red-400 text-center">{error}</p>}
         </div>
+        <p className="mt-4 text-center text-gray-400">
+            Already have an account?{" "}
+            <a
+              href="#"
+              onClick={handleClick}
+              className="text-blue-500 hover:underline"
+            >
+              Signup
+            </a>
+          </p>
       </div>
     </div>
   );
