@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { addHabits, getAllHabits, markDone, reset } from "../service/habit";
+import Header from "../components/common/Header";
+import { profile } from "../service/auth";
 
 // Icons (using inline SVG to avoid extra libraries)
 const CheckIcon = () => (
@@ -100,25 +102,32 @@ const calculateStreak = (completedDates: string[]): number => {
 };
 
 export default function DashBoardPage() {
+  interface FormData {
+    firstName: string;
+    lastName: string;
+  }
+  //   const user = JSON.parse(localStorage.getItem("user") || "{}");
   const [habits, setHabits] = useState<Habit[]>([]);
   //   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const navigate = useNavigate();
+  //   const navigate = useNavigate();
   const [newHabitTitle, setNewHabitTitle] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [filter, setFilter] = useState("all");
   const [error, setError] = useState<string | null>(null);
+  const [userData, setUserData] = useState<FormData>({
+    firstName: "",
+    lastName: "",
+  });
 
   // Fetch habits from the backend
   const fetchHabits = useCallback(async () => {
-    if (!user.userId) return;
+    // if (!user.userId) return;
     setIsLoading(true);
     try {
-      const response: any = await getAllHabits(filter, searchTerm);
-      if (response !== 200) {
-        throw new Error("Network response was not ok");
-      }
-      const data: Habit[] = await response.json();
+      const response = await getAllHabits(filter, searchTerm);
+      if (response.status !== 200) throw new Error("Failed to fetch");
+      const data: Habit[] = response.data.data;
       const habitsWithStreak = data.map((habit) => ({
         ...habit,
         streak: calculateStreak(habit.completedDates),
@@ -130,15 +139,24 @@ export default function DashBoardPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [user.userId, filter, searchTerm]);
+  }, [filter, searchTerm]);
 
   useEffect(() => {
     fetchHabits();
+    const fetchUserProfile = async () => {
+      try {
+        const result = await profile();
+        setUserData(result.data.data);
+      } catch (error) {
+        console.log("err", error);
+      }
+    };
+    fetchUserProfile();
   }, [fetchHabits]);
 
   // Handle CRUD operations
   const handleCreateHabit = async () => {
-    if (!newHabitTitle || !user.userId) return;
+    if (!newHabitTitle) return;
     try {
       const response: any = await addHabits(newHabitTitle);
       if (response !== 201) {
@@ -180,144 +198,155 @@ export default function DashBoardPage() {
   };
   return (
     <>
-      <div className="container mx-auto p-6 bg-gray-950 text-white min-h-screen">
-        <h2 className="text-3xl font-bold mb-6">Habit Dashboard</h2>
-        <p className="text-sm text-gray-400 mb-4">
-          User ID: <span className="font-mono">{user.userId}</span>
-        </p>
-
-        {/* Add New Habit Section */}
-        <div className="bg-gray-800 p-6 rounded-xl shadow-lg mb-8">
-          <h3 className="text-2xl font-semibold mb-4">Add a New Habit</h3>
-          <div className="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4">
-            <input
-              type="text"
-              placeholder="e.g., Drink water, Read a book"
-              value={newHabitTitle}
-              onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                setNewHabitTitle(e.target.value)
-              }
-              className="flex-grow p-3 rounded-md bg-gray-700 border border-gray-600 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-            <button
-              onClick={handleCreateHabit}
-              className="bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-6 rounded-md transition-colors shadow-lg"
-            >
-              Add Habit
-            </button>
-          </div>
-        </div>
-
-        {/* Filters and Search */}
-        <div className="flex flex-col sm:flex-row items-center justify-between space-y-4 sm:space-y-0 mb-6">
-          <div className="flex space-x-2">
-            <button
-              onClick={() => setFilter("")}
-              className={`flex items-center space-x-2 px-4 py-2 rounded-md transition-colors ${
-                filter === "" ? "bg-blue-600" : "bg-gray-700 hover:bg-gray-600"
-              }`}
-            >
-              All
-            </button>
-            <button
-              onClick={() => setFilter("completed")}
-              className={`flex items-center space-x-2 px-4 py-2 rounded-md transition-colors ${
-                filter === "completed"
-                  ? "bg-blue-600"
-                  : "bg-gray-700 hover:bg-gray-600"
-              }`}
-            >
-              Completed
-            </button>
-            <button
-              onClick={() => setFilter("notCompleted")}
-              className={`flex items-center space-x-2 px-4 py-2 rounded-md transition-colors ${
-                filter === "notCompleted"
-                  ? "bg-blue-600"
-                  : "bg-gray-700 hover:bg-gray-600"
-              }`}
-            >
-              Not Completed
-            </button>
-          </div>
-          <div className="relative w-full sm:w-auto">
-            <input
-              type="text"
-              placeholder="Search by title..."
-              value={searchTerm}
-              onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                setSearchTerm(e.target.value)
-              }
-              className="w-full pl-10 pr-4 py-2 rounded-md bg-gray-700 border border-gray-600 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-            <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
-              <SearchIcon />
+      <div className="min-h-screen bg-gray-900">
+        <Header />
+        <div className="container mx-auto p-6 bg-gray-950 text-white min-h-screen">
+          <h2 className="text-3xl font-bold mb-6">Habit Dashboard</h2>
+          <p className="text-sm text-gray-400 mb-4">
+            Hi:{" "}
+            <span className="font-mono">
+              {userData.firstName} {userData.lastName}{" "}
             </span>
-          </div>
-        </div>
+          </p>
 
-        {/* Habit List */}
-        {isLoading ? (
-          <div className="text-center text-gray-400 text-xl mt-12">
-            Loading habits...
-          </div>
-        ) : error ? (
-          <div className="text-center text-red-500 text-xl mt-12">{error}</div>
-        ) : habits.length === 0 ? (
-          <div className="text-center text-gray-400 text-xl mt-12">
-            No habits found.
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {habits.map((habit) => (
-              <div
-                key={habit._id}
-                className="bg-gray-800 p-6 rounded-xl shadow-xl border border-gray-700 flex flex-col justify-between"
+          {/* Add New Habit Section */}
+          <div className="bg-gray-800 p-6 rounded-xl shadow-lg mb-8">
+            <h3 className="text-2xl font-semibold mb-4">Add a New Habit</h3>
+            <div className="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4">
+              <input
+                type="text"
+                placeholder="e.g., Drink water, Read a book"
+                value={newHabitTitle}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                  setNewHabitTitle(e.target.value)
+                }
+                className="flex-grow p-3 rounded-md bg-gray-700 border border-gray-600 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <button
+                onClick={handleCreateHabit}
+                className="cursor-pointer bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-6 rounded-md transition-colors shadow-lg"
               >
-                <div>
-                  <h3 className="text-xl font-bold text-blue-400 mb-2">
-                    {habit.title}
-                  </h3>
-                  <p className="text-sm text-gray-400 mb-4">
-                    Streak:{" "}
-                    <span className="font-bold text-white">
-                      {habit.streak} day(s)
-                    </span>
-                  </p>
-                  <div className="text-sm text-gray-500">
-                    <p>
-                      Started: {new Date(habit.startDate).toLocaleDateString()}
+                Add Habit
+              </button>
+            </div>
+          </div>
+
+          {/* Filters and Search */}
+          <div className="flex flex-col sm:flex-row items-center justify-between space-y-4 sm:space-y-0 mb-6">
+            <div className="flex space-x-2">
+              <button
+                onClick={() => setFilter("")}
+                className={`cursor-pointer flex items-center space-x-2 px-4 py-2 rounded-md transition-colors ${
+                  filter === ""
+                    ? "bg-blue-600"
+                    : "bg-gray-700 hover:bg-gray-600"
+                }`}
+              >
+                All
+              </button>
+              <button
+                onClick={() => setFilter("completed")}
+                className={`cursor-pointer flex items-center space-x-2 px-4 py-2 rounded-md transition-colors ${
+                  filter === "completed"
+                    ? "bg-blue-600"
+                    : "bg-gray-700 hover:bg-gray-600"
+                }`}
+              >
+                Completed
+              </button>
+              <button
+                onClick={() => setFilter("notCompleted")}
+                className={`cursor-pointer flex items-center space-x-2 px-4 py-2 rounded-md transition-colors ${
+                  filter === "notCompleted"
+                    ? "bg-blue-600"
+                    : "bg-gray-700 hover:bg-gray-600"
+                }`}
+              >
+                Not Completed
+              </button>
+            </div>
+            <div className="relative w-full sm:w-auto">
+              <input
+                type="text"
+                placeholder="Search by title..."
+                value={searchTerm}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                  setSearchTerm(e.target.value)
+                }
+                className="w-full pl-10 pr-4 py-2 rounded-md bg-gray-700 border border-gray-600 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
+                <SearchIcon />
+              </span>
+            </div>
+          </div>
+
+          {/* Habit List */}
+          {isLoading ? (
+            <div className="text-center text-gray-400 text-xl mt-12">
+              Loading habits...
+            </div>
+          ) : error ? (
+            <div className="text-center text-red-500 text-xl mt-12">
+              {error}
+            </div>
+          ) : habits.length === 0 ? (
+            <div className="text-center text-gray-400 text-xl mt-12">
+              No habits found.
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {habits.map((habit) => (
+                <div
+                  key={habit._id}
+                  className="bg-gray-800 p-6 rounded-xl shadow-xl border border-gray-700 flex flex-col justify-between"
+                >
+                  <div>
+                    <h3 className="text-xl font-bold text-blue-400 mb-2">
+                      {habit.title}
+                    </h3>
+                    <p className="text-sm text-gray-400 mb-4">
+                      Streak:{" "}
+                      <span className="font-bold text-white">
+                        {habit.streak} day(s)
+                      </span>
                     </p>
-                    <p>
-                      Last Completed:{" "}
-                      {habit.completedDates.length > 0
-                        ? new Date(
-                            habit.completedDates[
-                              habit.completedDates.length - 1
-                            ]
-                          ).toLocaleDateString()
-                        : "N/A"}
-                    </p>
+                    <div className="text-sm text-gray-500">
+                      <p>
+                        Started:{" "}
+                        {new Date(habit.startDate).toLocaleDateString()}
+                      </p>
+                      <p>
+                        Last Completed:{" "}
+                        {habit.completedDates.length > 0
+                          ? new Date(
+                              habit.completedDates[
+                                habit.completedDates.length - 1
+                              ]
+                            ).toLocaleDateString()
+                          : "N/A"}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2 mt-4">
+                    <button
+                      onClick={() => handleMarkDone(habit._id)}
+                      className="cursor-pointer flex-grow flex items-center justify-center space-x-2 bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-md transition-colors shadow-sm"
+                    >
+                      <CheckIcon /> <span>Mark Done</span>
+                    </button>
+                    <button
+                      onClick={() => handleReset(habit._id)}
+                      className="cursor-pointer flex-grow flex items-center justify-center space-x-2 bg-red-600 hover:bg-red-700 text-white font-semibold py-2 px-4 rounded-md transition-colors shadow-sm"
+                    >
+                      <RefreshCwIcon /> <span>Reset</span>
+                    </button>
                   </div>
                 </div>
-                <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2 mt-4">
-                  <button
-                    onClick={() => handleMarkDone(habit._id)}
-                    className="flex-grow flex items-center justify-center space-x-2 bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-md transition-colors shadow-sm"
-                  >
-                    <CheckIcon /> <span>Mark Done</span>
-                  </button>
-                  <button
-                    onClick={() => handleReset(habit._id)}
-                    className="flex-grow flex items-center justify-center space-x-2 bg-red-600 hover:bg-red-700 text-white font-semibold py-2 px-4 rounded-md transition-colors shadow-sm"
-                  >
-                    <RefreshCwIcon /> <span>Reset</span>
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
+              ))}
+            </div>
+          )}
+        </div>
       </div>
     </>
   );

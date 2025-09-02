@@ -15,7 +15,7 @@ export default function Loginpage() {
       // Save tokens in localStorage
       localStorage.setItem("accessToken", data.accessToken);
       localStorage.setItem("refreshToken", data.refreshToken);
-      localStorage.setItem("user", JSON.stringify(data.user));
+      // localStorage.setItem("user", JSON.stringify(data.user));
 
       navigate("/dashboard");
     } catch (err: any) {
